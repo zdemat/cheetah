@@ -328,7 +328,7 @@ void cPixelDetectorCommon::configure(cGlobal * global) {
 		pix_nx = asic_nx * nasics_x;
 		pix_ny = asic_ny * nasics_y;
 		pix_nn = pix_nx * pix_ny;
-		pixelSize = 172e-6;
+		pixelSize = 172e-6;	
 		
 	}
     else if(strcmp(detectorType, "jungfrau1M") == 0) {
@@ -354,8 +354,41 @@ void cPixelDetectorCommon::configure(cGlobal * global) {
         pix_ny = asic_ny * nasics_y;
         pix_nn = pix_nx * pix_ny;
         pixelSize = 100e-6;
-    }
-	else {
+
+	} else if(strcmp(detectorName, "eiger-1m") == 0 ) {
+		strcpy(detectorType, "eiger-1m");
+		asic_nx = EIGER1M_ASIC_NX/2;
+		asic_ny = EIGER1M_ASIC_NY/2;
+		nasics_x = 1;
+		nasics_y = 1;
+		asic_nn = asic_nx*asic_ny;
+		pix_nx = asic_nx * nasics_x;
+		pix_ny = asic_ny * nasics_y;
+		pix_nn = pix_nx * pix_ny;
+		pixelSize = 75e-6;
+	} else if(strcmp(detectorName, "eiger-4m") == 0 ) {
+		strcpy(detectorType, "eiger-4m");
+		asic_nx = EIGER4M_ASIC_NX/2;
+		asic_ny = EIGER4M_ASIC_NY/2;
+		nasics_x = 1;
+		nasics_y = 1;
+		asic_nn = asic_nx*asic_ny;
+		pix_nx = asic_nx * nasics_x;
+		pix_ny = asic_ny * nasics_y;
+		pix_nn = pix_nx * pix_ny;
+		pixelSize = 75e-6;
+	} else if(strcmp(detectorName, "eiger-16m") == 0 ) {
+		strcpy(detectorType, "eiger-16m");
+		asic_nx = EIGER16M_ASIC_NX/2;
+		asic_ny = EIGER16M_ASIC_NY/2;
+		nasics_x = 1;
+		nasics_y = 1;
+		asic_nn = asic_nx*asic_ny;
+		pix_nx = asic_nx * nasics_x;
+		pix_ny = asic_ny * nasics_y;
+		pix_nn = pix_nx * pix_ny;
+		pixelSize = 75e-6;		
+	} else {
 		printf("Error: unknown detector name %s\n", detectorName);
 		printf("Detector type %s\n", detectorType);
 		printf("cPixelDetectorCommon::configure()\n");

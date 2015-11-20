@@ -71,6 +71,24 @@ static const unsigned  PILATUS6M_ASIC_NY = 2527;		// ASIC ny = extent of one ASI
 static const unsigned  PILATUS6M_nASICS_X = 1;		// Probably really 5x12 ASIC, but then
 static const unsigned  PILATUS6M_nASICS_Y = 1;		// ASIC dimensions aren't whole numbers
 
+// Dectris EIGER 1M //
+static const unsigned  EIGER1M_ASIC_NX = 1065;		// ASIC nx = extent of one ASIC in x
+static const unsigned  EIGER1M_ASIC_NY = 1030;		// ASIC ny = extent of one ASIC in y
+static const unsigned  EIGER1M_nASICS_X = 1;		// 1 ASICs across in raw data stream
+static const unsigned  EIGER1M_nASICS_Y = 1;		// 1 ASICs down in raw data stresm
+
+// Dectris EIGER 4M //
+static const unsigned  EIGER4M_ASIC_NX = 2167;		// ASIC nx = extent of one ASIC in x
+static const unsigned  EIGER4M_ASIC_NY = 2070;		// ASIC ny = extent of one ASIC in y
+static const unsigned  EIGER4M_nASICS_X = 1;		// 1 ASICs across in raw data stream
+static const unsigned  EIGER4M_nASICS_Y = 1;		// 1 ASICs down in raw data stresm
+
+// Dectris EIGER 16M //
+static const unsigned  EIGER16M_ASIC_NX = 4371;		// ASIC nx = extent of one ASIC in x
+static const unsigned  EIGER16M_ASIC_NY = 4150;		// ASIC ny = extent of one ASIC in y
+static const unsigned  EIGER16M_nASICS_X = 1;		// 1 ASICs across in raw data stream
+static const unsigned  EIGER16M_nASICS_Y = 1;		// 1 ASICs down in raw data stresm
+
 static const unsigned int cbufsize = 1024;
 
 /*
