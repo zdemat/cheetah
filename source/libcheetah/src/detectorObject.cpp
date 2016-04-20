@@ -217,7 +217,6 @@ cPixelDetectorCommon::cPixelDetectorCommon()
     savePowderAssembledAndDownsampled = 0;
     savePowderRadialAverage = 1;
     savePowderMasked = 0;
-
 }
 
 void cPixelDetectorCommon::configure(cGlobal * global) {
@@ -357,8 +356,8 @@ void cPixelDetectorCommon::configure(cGlobal * global) {
 
 	} else if(strcmp(detectorName, "eiger-1m") == 0 ) {
 		strcpy(detectorType, "eiger-1m");
-		asic_nx = EIGER1M_ASIC_NX/2;
-		asic_ny = EIGER1M_ASIC_NY/2;
+		asic_nx = EIGER1M_ASIC_NX;
+		asic_ny = EIGER1M_ASIC_NY;
 		nasics_x = 1;
 		nasics_y = 1;
 		asic_nn = asic_nx*asic_ny;
@@ -368,8 +367,8 @@ void cPixelDetectorCommon::configure(cGlobal * global) {
 		pixelSize = 75e-6;
 	} else if(strcmp(detectorName, "eiger-4m") == 0 ) {
 		strcpy(detectorType, "eiger-4m");
-		asic_nx = EIGER4M_ASIC_NX/2;
-		asic_ny = EIGER4M_ASIC_NY/2;
+		asic_nx = EIGER4M_ASIC_NX;
+		asic_ny = EIGER4M_ASIC_NY;
 		nasics_x = 1;
 		nasics_y = 1;
 		asic_nn = asic_nx*asic_ny;
@@ -379,8 +378,8 @@ void cPixelDetectorCommon::configure(cGlobal * global) {
 		pixelSize = 75e-6;
 	} else if(strcmp(detectorName, "eiger-16m") == 0 ) {
 		strcpy(detectorType, "eiger-16m");
-		asic_nx = EIGER16M_ASIC_NX/2;
-		asic_ny = EIGER16M_ASIC_NY/2;
+		asic_nx = EIGER16M_ASIC_NX;
+		asic_ny = EIGER16M_ASIC_NY;
 		nasics_x = 1;
 		nasics_y = 1;
 		asic_nn = asic_nx*asic_ny;
