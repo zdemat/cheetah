@@ -38,7 +38,7 @@ int main(int argc, const char * argv[]) {
 	// Parse metadata
 	printf("\n** Parsing metadata in the HDF5 file **\n");
 
-	int xpixels = -1, ypixels = -1, beamx = -1, beamy = -1, nimages = -1;
+	int xpixels = -1, ypixels = -1, beamx = -1, beamy = -1, ival = -1, nimages = -1;
 	double pixelsize = -1, wavelength = -1, distance = -1;
 	double count_time = -1, frame_time = -1, osc_width = -1;
 	char detector_sn[256] = {}, description[256] = {};
@@ -52,8 +52,13 @@ int main(int argc, const char * argv[]) {
 	}
 	printf("Successfully opened %s\n", argv[1]);
 
-	H5LTread_dataset_int(hdf, "/entry/instrument/detector/detectorSpecific/nimages", &nimages);
-	printf("Found %d images in the input\n", nimages);
+	H5LTread_dataset_int(hdf, "/entry/instrument/detector/detectorSpecific/nimages", &ival);
+    nimages = ival;
+	printf("Found nimages=%d in the input\n", ival);
+	H5LTread_dataset_int(hdf, "/entry/instrument/detector/detectorSpecific/ntrigger", &ival);
+	printf("Found ntrigger=%d in the input\n", ival);
+	nimages *= ival;
+	printf("Asssuming total number of %d images in the input\n", nimages);
 
 	H5Eset_auto(0, NULL, NULL); // Comment out this line for debugging.
 
