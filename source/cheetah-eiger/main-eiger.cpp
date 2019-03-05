@@ -11,7 +11,7 @@ Don't forget to set HDF5_PLUGIN_PATH!
 
 #include <iostream>
 #include <stdlib.h>
-#include <string.h>
+#include <string>
 #include <stdio.h>
 #include <math.h>
 
@@ -26,10 +26,8 @@ int main(int argc, const char * argv[]) {
 	printf(" based on cheetah-sacla by Anton Barty\n");
 	printf("\nIf this program fails, make sure HDF5_PLUGIN_PATH points to lz4 plugin!\n");
 	
-	char filename[1024], cheetahini[1024];
-	strcpy(filename, argv[1]);
-	strcpy(cheetahini, argv[2]);
-   
+	std::string filename(argv[1]), cheetahini(argv[2]);
+	   
     printf("Program name: %s\n",argv[0]);
     printf("Input data file: %s\n", filename);
     printf("Cheetah .ini file: %s\n", cheetahini);
@@ -45,12 +43,12 @@ int main(int argc, const char * argv[]) {
 
 	hid_t hdf;	
 
-	hdf = H5Fopen(argv[1], H5F_ACC_RDONLY, H5P_DEFAULT);
+	hdf = H5Fopen(filename.c_str(), H5F_ACC_RDONLY, H5P_DEFAULT);
 	if (hdf < 0) {
-		fprintf(stderr, "Failed to open file %s\n", argv[1]);
+		fprintf(stderr, "Failed to open file %s\n", filename);
 		return -1;
 	}
-	printf("Successfully opened %s\n", argv[1]);
+	printf("Successfully opened %s\n", filename);
 
 	H5LTread_dataset_int(hdf, "/entry/instrument/detector/detectorSpecific/nimages", &ival);
     nimages = ival;
@@ -169,7 +167,7 @@ int main(int argc, const char * argv[]) {
 
 	static time_t startT = 0;
 	time(&startT);
-    strcpy(cheetahGlobal.configFile, cheetahini);
+    strcpy(cheetahGlobal.configFile, cheetahini.c_str());
 	cheetahInit(&cheetahGlobal);
 
     for (frameNumber = 0; frameNumber < nimages; frameNumber++) {
