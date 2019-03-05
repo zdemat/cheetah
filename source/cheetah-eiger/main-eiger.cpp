@@ -5,7 +5,7 @@ Cheetah for EIGER
 Don't forget to set HDF5_PLUGIN_PATH!
 */
 
-//  Distantly based on cheetah-sacla
+//  Distantly based on cheetah-sacla, cheetah-eiger from Takanory Nakane and cheetah-euxfel
 //   Created by Anton Barty on 20/1/14.
 //   Copyright (c) 2014 Anton Barty. All rights reserved.
 
@@ -20,6 +20,18 @@ Don't forget to set HDF5_PLUGIN_PATH!
 
 #include "cheetah.h"
 
+// This is for parsing getopt_long()
+struct tCheetahEigerparams {
+    const char *filename;
+    const char *cheetahini;
+    int imgStart;
+    int imgStep;
+    int imgEnd;
+} CheetahEigerparams;
+
+void parse_config(int, const char *[], tCheetahEigerparams*);
+int cheetah_process_file(tCheetahEigerparams*);
+
 int main(int argc, const char * argv[]) {
 	printf("Cheetah for EIGER\n");
 	printf(" by Takanori Nakane\n");
@@ -29,9 +41,17 @@ int main(int argc, const char * argv[]) {
 	std::string filename(argv[1]), cheetahini(argv[2]);
 	   
     printf("Program name: %s\n",argv[0]);
-    printf("Input data file: %s\n", filename);
-    printf("Cheetah .ini file: %s\n", cheetahini);
+    printf("Input data file: %s\n", filename.c_str());
+    printf("Cheetah .ini file: %s\n", cheetahini.c_str());
 
+    // Parse configurations
+	parse_config(argc, argv, &CheetahEigerparams);
+	
+	// Process file
+    return cheetah_process_file(&CheetahEigerparams);
+}
+
+int cheetah_process_file(tCheetahEigerparams *global) {
 
 	// Parse metadata
 	printf("\n** Parsing metadata in the HDF5 file **\n");
@@ -43,12 +63,12 @@ int main(int argc, const char * argv[]) {
 
 	hid_t hdf;	
 
-	hdf = H5Fopen(filename.c_str(), H5F_ACC_RDONLY, H5P_DEFAULT);
+	hdf = H5Fopen(global->filename, H5F_ACC_RDONLY, H5P_DEFAULT);
 	if (hdf < 0) {
-		fprintf(stderr, "Failed to open file %s\n", filename);
+		fprintf(stderr, "Failed to open file %s\n", global->filename);
 		return -1;
 	}
-	printf("Successfully opened %s\n", filename);
+	printf("Successfully opened %s\n", global->filename);
 
 	H5LTread_dataset_int(hdf, "/entry/instrument/detector/detectorSpecific/nimages", &ival);
     nimages = ival;
@@ -167,7 +187,7 @@ int main(int argc, const char * argv[]) {
 
 	static time_t startT = 0;
 	time(&startT);
-    strcpy(cheetahGlobal.configFile, cheetahini.c_str());
+    strcpy(cheetahGlobal.configFile, global->cheetahini);
 	cheetahInit(&cheetahGlobal);
 
     for (frameNumber = 0; frameNumber < nimages; frameNumber++) {
@@ -287,3 +307,13 @@ int main(int argc, const char * argv[]) {
     return 0;
 }
 
+/*
+ *	Configuration parser (getopt_long)
+ */
+void parse_config(int argc, const char *argv[], tCheetahEigerparams *global) {
+	global->filename = argv[1];
+	global->cheetahini = argv[2];
+	global->imgStart = 0;
+	global->imgStep = 1;
+	global->imgEnd = -1;
+}
