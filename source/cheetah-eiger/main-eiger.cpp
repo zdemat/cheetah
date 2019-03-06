@@ -11,6 +11,7 @@ Don't forget to set HDF5_PLUGIN_PATH!
 
 #include <iostream>
 #include <stdlib.h>
+#include <getopt.h>    /* for getopt_long; POSIX standard getopt is in unistd.h */
 #include <string>
 #include <stdio.h>
 #include <math.h>
@@ -22,31 +23,35 @@ Don't forget to set HDF5_PLUGIN_PATH!
 
 // This is for parsing getopt_long()
 struct tCheetahEigerparams {
-    const char *filename;
-    const char *cheetahini;
-    int imgStart;
-    int imgStep;
-    int imgEnd;
+    const char *masterFile;
+    const char *iniFile;
+    int frameFirst;
+    int frameStep;
+    int frameLast;
 } CheetahEigerparams;
 
-void parse_config(int, const char *[], tCheetahEigerparams*);
+void parse_config(int, char *[], tCheetahEigerparams*);
 int cheetah_process_file(tCheetahEigerparams*);
 
-int main(int argc, const char * argv[]) {
+int main(int argc, char * argv[]) {
 	printf("Cheetah for EIGER\n");
 	printf(" by Takanori Nakane\n");
 	printf(" based on cheetah-sacla by Anton Barty\n");
 	printf("\nIf this program fails, make sure HDF5_PLUGIN_PATH points to lz4 plugin!\n");
-	
-	std::string filename(argv[1]), cheetahini(argv[2]);
+
+	// Parse configurations
+	parse_config(argc, argv, &CheetahEigerparams);
+
+	std::string filename(CheetahEigerparams.masterFile), cheetahini(CheetahEigerparams.iniFile);
 	   
     printf("Program name: %s\n",argv[0]);
     printf("Input data file: %s\n", filename.c_str());
     printf("Cheetah .ini file: %s\n", cheetahini.c_str());
-
-    // Parse configurations
-	parse_config(argc, argv, &CheetahEigerparams);
 	
+	printf("first: %d\n", CheetahEigerparams.frameFirst);
+	printf("step: %d\n", CheetahEigerparams.frameStep);
+	printf("last: %d\n", CheetahEigerparams.frameLast);
+
 	// Process file
     return cheetah_process_file(&CheetahEigerparams);
 }
@@ -63,12 +68,12 @@ int cheetah_process_file(tCheetahEigerparams *global) {
 
 	hid_t hdf;	
 
-	hdf = H5Fopen(global->filename, H5F_ACC_RDONLY, H5P_DEFAULT);
+	hdf = H5Fopen(global->masterFile, H5F_ACC_RDONLY, H5P_DEFAULT);
 	if (hdf < 0) {
-		fprintf(stderr, "Failed to open file %s\n", global->filename);
+		fprintf(stderr, "Failed to open file %s\n", global->masterFile);
 		return -1;
 	}
-	printf("Successfully opened %s\n", global->filename);
+	printf("Successfully opened %s\n", global->masterFile);
 
 	H5LTread_dataset_int(hdf, "/entry/instrument/detector/detectorSpecific/nimages", &ival);
     nimages = ival;
@@ -77,6 +82,9 @@ int cheetah_process_file(tCheetahEigerparams *global) {
 	printf("Found ntrigger=%d in the input\n", ival);
 	nimages *= ival;
 	printf("Asssuming total number of %d images in the input\n", nimages);
+
+	if (global->frameLast<0)
+		global->frameLast = nimages-1;
 
 	H5Eset_auto(0, NULL, NULL); // Comment out this line for debugging.
 
@@ -187,10 +195,10 @@ int cheetah_process_file(tCheetahEigerparams *global) {
 
 	static time_t startT = 0;
 	time(&startT);
-    strcpy(cheetahGlobal.configFile, global->cheetahini);
+    strcpy(cheetahGlobal.configFile, global->iniFile);
 	cheetahInit(&cheetahGlobal);
 
-    for (frameNumber = 0; frameNumber < nimages; frameNumber++) {
+    for (frameNumber = global->frameFirst; frameNumber <= global->frameLast; ) {
         printf("Processing frame %ld\n", frameNumber);
 		
 		//  Cheetah: Calculate time beteeen processing of data frames
@@ -289,6 +297,8 @@ int cheetah_process_file(tCheetahEigerparams *global) {
 		}
 //		printf("underflow %d overflow %d\n", underflow, overflow);
 		cheetahProcessEventMultithreaded(&cheetahGlobal, eventData);
+
+		frameNumber += global->frameStep;
     }
 
 	// Finish
@@ -308,12 +318,105 @@ int cheetah_process_file(tCheetahEigerparams *global) {
 }
 
 /*
+ *  Print some useful information
+ */
+void print_help(void){
+    std::cout << "Cheetah interface for Eiger\n";
+    std::cout << "authors & developers, March 2019-\n";
+    std::cout << std::endl;
+    std::cout << "usage: cheetah-eiger -i <INIFILE> proteinXXX_master.h5 \n";
+    std::cout << std::endl;
+    std::cout << "\t--inifile=<file>     Specifies cheetah.ini file to use\n";
+    //std::cout << "\t--experiment=<name>  String specifying the experiment name (used for lableling and setting the file layout)\n";
+    std::cout << "\t--first=<n>          Start processing from the <first> frame (inclusive, frame numbering starts with 0)\n";
+    std::cout << "\t--step=<n>           Process only each <step>th frame\n";
+	std::cout << "\t--last=<n>           End processing with the <last> frame (inclusive, set to -1 to process all frames)\n";
+    std::cout << std::endl;
+    std::cout << "End of help\n";
+}
+
+/*
  *	Configuration parser (getopt_long)
  */
-void parse_config(int argc, const char *argv[], tCheetahEigerparams *global) {
-	global->filename = argv[1];
-	global->cheetahini = argv[2];
-	global->imgStart = 0;
-	global->imgStep = 1;
-	global->imgEnd = -1;
+void parse_config(int argc, char *argv[], tCheetahEigerparams *global) {
+
+	if(argc<3) {
+		printf("At least two arguments required.\n");
+		print_help();
+		exit(1);
+	}
+	
+	global->masterFile = NULL;
+	global->iniFile = NULL;
+	global->frameFirst = 0;
+	global->frameStep = 1;
+	global->frameLast = -1;
+
+	// legacy cheetah-eiger: if we have only two arguments we are done
+	if(argc<=3) {
+		global->masterFile = argv[1];
+		global->iniFile = argv[2];
+		return;
+	}
+
+	// Add getopt-long options
+    // three legitimate values: no_argument, required_argument and optional_argument
+	const struct option longOpts[] = {
+		/*{ "master",  required_argument, NULL, 'm' },*/
+		{ "inifile", required_argument, NULL, 'i' },
+        { "first",   required_argument, NULL, 'f' },
+        { "step",    required_argument, NULL, 's' },
+        { "last",    required_argument, NULL, 'l' },
+		{ "verbose", no_argument, NULL, 'v' },
+		{ "help",    no_argument, NULL, 'h' },
+		{ NULL,      no_argument, NULL,  0  }
+	};
+	const char optString[] = "i:f:s:l:vh?";
+	
+	int opt;
+	int longIndex;
+	while( (opt=getopt_long(argc, argv, optString, longOpts, &longIndex )) != -1 ) {
+		switch( opt ) {
+		case 'v':
+			//global->verbose++;
+			break;
+		case 'h':   /* fall-through is intentional */
+		case '?':
+			print_help();
+			exit(1);
+			break;
+		case 'i':
+			global->iniFile = optarg;
+			std::cout << "cheetah.ini file set to " << global->iniFile << std::endl;
+			break;
+        case 'f':
+			global->frameFirst = atol(optarg);
+			std::cout << "the first frame number to process set to " << global->frameFirst << std::endl;
+			break;
+		case 's':
+			global->frameStep = atol(optarg);
+			std::cout << "the step for frames processing set to " << global->frameStep << std::endl;
+			break;
+        case 'l':
+			global->frameLast = atol(optarg);
+			std::cout << "the last frame number to process set to " << global->frameLast << std::endl;
+			break;
+		case 0: /* long option without a short arg */
+			// TODO
+			break;
+		default:
+			/* You won't actually get here. */
+			break;
+		}
+	}
+	
+	// This is where unprocessed arguments end up
+	//std::cout << "optind: " << optind << std::endl;
+	if( argc-optind == 1 ) {
+		global->masterFile = argv[optind];
+	} else {
+		std::cout << "Number of unprocessed arguments: " << argc-optind << std::endl;
+		std::cout << "There should be exactly one for the master data file" << std::endl;
+		exit(1);
+	}
 }
