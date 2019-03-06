@@ -1,3 +1,7 @@
+if(ENABLE_MPI)
+find_package(MPI REQUIRED)
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -D__WITH_MPI__")
+endif(ENABLE_MPI)
 
 find_package(HDF5 REQUIRED)
 
@@ -10,6 +14,10 @@ include_directories("include")
 include_directories(${CHEETAH_INCLUDES})
 include_directories(${HDF5_INCLUDE_DIR})
 
+if(ENABLE_MPI)
+include_directories(SYSTEM ${MPI_INCLUDE_PATH})
+endif(ENABLE_MPI)
+
 #add_library(cheetah-sacla-1 SHARED ${sources})
 
 add_executable(cheetah-eiger ${sources})
@@ -17,6 +25,10 @@ add_executable(cheetah-eiger ${sources})
 add_dependencies(cheetah-eiger cheetah)
 
 target_link_libraries(cheetah-eiger ${CHEETAH_LIBRARY})
+
+if(ENABLE_MPI)
+target_link_libraries(cheetah-eiger ${MPI_CXX_LIBRARIES})
+endif(ENABLE_MPI)
 
 #set_target_properties(
 # cheetah-sacla
