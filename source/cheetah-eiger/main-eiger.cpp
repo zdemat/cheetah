@@ -16,6 +16,10 @@ Don't forget to set HDF5_PLUGIN_PATH!
 #include <stdio.h>
 #include <math.h>
 
+#ifdef __WITH_MPI__
+#include <mpi.h>
+#endif /* __WITH_MPI__ */
+
 #include <hdf5.h>
 #include <hdf5_hl.h>
 
@@ -34,16 +38,50 @@ void parse_config(int, char *[], tCheetahEigerparams*);
 int cheetah_process_file(tCheetahEigerparams*);
 
 int main(int argc, char * argv[]) {
-	printf("Cheetah for EIGER\n");
+
+  int ret;
+
+  #ifdef __WITH_MPI__
+  int my_rank, num_procs;
+  char hname[1024];
+  int lenhname;
+
+  int irequired, iprovided;
+  irequired = MPI_THREAD_MULTIPLE;
+  MPI_Init_thread(&argc, &argv, irequired, &iprovided);
+
+  /* Identify this process */
+  MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
+  MPI_Get_processor_name(hname, &lenhname);
+    
+  /* Find out how many total processes are active */
+  MPI_Comm_size(MPI_COMM_WORLD, &num_procs);
+
+  /* Until this point, all programs have been doing exactly the same.
+     Here, we check the rank to distinguish the roles of the programs */
+  if (my_rank == 0) {
+    printf("(MPI_Init_thread) required: %d, provided: %d\n", irequired, iprovided);
+    printf("We have %i processes.\n", num_procs);
+  #endif /* __WITH_MPI__ */ 
+
+        printf("Cheetah for EIGER\n");
 	printf(" by Takanori Nakane\n");
 	printf(" based on cheetah-sacla by Anton Barty\n");
 	printf("\nIf this program fails, make sure HDF5_PLUGIN_PATH points to lz4 plugin!\n");
+
+   #ifdef __WITH_MPI__
+   }
+   #endif /* __WITH_MPI__ */
 
 	// Parse configurations
 	parse_config(argc, argv, &CheetahEigerparams);
 
 	std::string filename(CheetahEigerparams.masterFile), cheetahini(CheetahEigerparams.iniFile);
-	   
+	
+   #ifdef __WITH_MPI__
+   if (my_rank == 0) {
+   #endif /* __WITH_MPI__ */
+   
     printf("Program name: %s\n",argv[0]);
     printf("Input data file: %s\n", filename.c_str());
     printf("Cheetah .ini file: %s\n", cheetahini.c_str());
@@ -52,8 +90,22 @@ int main(int argc, char * argv[]) {
 	printf("step: %d\n", CheetahEigerparams.frameStep);
 	printf("last: %d\n", CheetahEigerparams.frameLast);
 
+    #ifdef __WITH_MPI__
+    }
+    // define specific first frame for each rank
+    CheetahEigerparams.frameFirst += my_rank*CheetahEigerparams.frameStep;
+    CheetahEigerparams.frameStep *= num_procs;
+    #endif /* __WITH_MPI__ */
+
 	// Process file
-    return cheetah_process_file(&CheetahEigerparams);
+    ret = cheetah_process_file(&CheetahEigerparams);
+
+    #ifdef __WITH_MPI__
+    /* Tear down the communication infrastructure */
+    MPI_Finalize();
+    #endif /* __WITH_MPI__ */
+
+    return 0;
 }
 
 int cheetah_process_file(tCheetahEigerparams *global) {
