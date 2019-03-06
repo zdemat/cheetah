@@ -25,8 +25,13 @@ Don't forget to set HDF5_PLUGIN_PATH!
 
 #include "cheetah.h"
 
+// default experiment name
+static char default_exptName[] = "eiger";
+
 // This is for parsing getopt_long()
 struct tCheetahEigerparams {
+	const char *exptName;
+	long runNumber = 0;
     const char *masterFile;
     const char *iniFile;
     int frameFirst;
@@ -92,6 +97,8 @@ int main(int argc, char * argv[]) {
 
     #ifdef __WITH_MPI__
     }
+    // set tunNumber to be task rank
+    CheetahEigerparams.runNumber = my_rank;
     // define specific first frame for each rank
     CheetahEigerparams.frameFirst += my_rank*CheetahEigerparams.frameStep;
     CheetahEigerparams.frameStep *= num_procs;
@@ -241,7 +248,7 @@ int cheetah_process_file(tCheetahEigerparams *global) {
 	printf("** Setting up Cheetah **\n");
 	static uint32_t ntriggers = 0;
 	long frameNumber = 0;
-    long runNumber = 0;
+    long runNumber = global->runNumber;
 	static cGlobal cheetahGlobal;
 	signed short *buf = (signed short*)malloc(sizeof(signed short) * xpixels * ypixels);
 
@@ -249,6 +256,10 @@ int cheetah_process_file(tCheetahEigerparams *global) {
 	time(&startT);
     strcpy(cheetahGlobal.configFile, global->iniFile);
 	cheetahInit(&cheetahGlobal);
+
+	// Set cheetahGlobal eperimentID and runNumber 
+	strcpy(cheetahGlobal.experimentID, global->exptName);
+	cheetahGlobal.runNumber = global->runNumber;
 
     for (frameNumber = global->frameFirst; frameNumber <= global->frameLast; ) {
         printf("Processing frame %ld\n", frameNumber);
@@ -379,7 +390,7 @@ void print_help(void){
     std::cout << "usage: cheetah-eiger -i <INIFILE> proteinXXX_master.h5 \n";
     std::cout << std::endl;
     std::cout << "\t--inifile=<file>     Specifies cheetah.ini file to use\n";
-    //std::cout << "\t--experiment=<name>  String specifying the experiment name (used for lableling and setting the file layout)\n";
+    std::cout << "\t--experiment=<name>  String specifying the experiment name (used for lableling)\n";
     std::cout << "\t--first=<n>          Start processing from the <first> frame (inclusive, frame numbering starts with 0)\n";
     std::cout << "\t--step=<n>           Process only each <step>th frame\n";
 	std::cout << "\t--last=<n>           End processing with the <last> frame (inclusive, set to -1 to process all frames)\n";
@@ -398,6 +409,8 @@ void parse_config(int argc, char *argv[], tCheetahEigerparams *global) {
 		exit(1);
 	}
 	
+    global->exptName = default_exptName;
+	global->runNumber = 0;
 	global->masterFile = NULL;
 	global->iniFile = NULL;
 	global->frameFirst = 0;
@@ -415,15 +428,16 @@ void parse_config(int argc, char *argv[], tCheetahEigerparams *global) {
     // three legitimate values: no_argument, required_argument and optional_argument
 	const struct option longOpts[] = {
 		/*{ "master",  required_argument, NULL, 'm' },*/
-		{ "inifile", required_argument, NULL, 'i' },
-        { "first",   required_argument, NULL, 'f' },
-        { "step",    required_argument, NULL, 's' },
-        { "last",    required_argument, NULL, 'l' },
-		{ "verbose", no_argument, NULL, 'v' },
-		{ "help",    no_argument, NULL, 'h' },
-		{ NULL,      no_argument, NULL,  0  }
+		{ "experiment", required_argument, NULL, 'e' },
+		{ "inifile",    required_argument, NULL, 'i' },
+        { "first",      required_argument, NULL, 'f' },
+        { "step",       required_argument, NULL, 's' },
+        { "last",       required_argument, NULL, 'l' },
+		{ "verbose",    no_argument, NULL, 'v' },
+		{ "help",       no_argument, NULL, 'h' },
+		{ NULL,         no_argument, NULL,  0  }
 	};
-	const char optString[] = "i:f:s:l:vh?";
+	const char optString[] = "e:i:f:s:l:vh?";
 	
 	int opt;
 	int longIndex;
@@ -452,6 +466,10 @@ void parse_config(int argc, char *argv[], tCheetahEigerparams *global) {
         case 'l':
 			global->frameLast = atol(optarg);
 			std::cout << "the last frame number to process set to " << global->frameLast << std::endl;
+			break;
+		case 'e':
+			global->exptName = optarg;
+			std::cout << "experiment name set to " << global->exptName << std::endl;
 			break;
 		case 0: /* long option without a short arg */
 			// TODO
