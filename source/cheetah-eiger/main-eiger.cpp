@@ -255,8 +255,16 @@ int cheetah_process_file(tCheetahEigerparams *global) {
 	static time_t startT = 0;
 	time(&startT);
     strcpy(cheetahGlobal.configFile, global->iniFile);
-	cheetahInit(&cheetahGlobal);
 
+	time_t loc_t = time(NULL);
+	struct tm loc_lt = {0};
+	localtime_r(&loc_t, &loc_lt);
+	
+	cheetahInit(&cheetahGlobal);
+	
+	// use local timezone, not SLAC
+	setenv("TZ", loc_lt.tm_zone, 1);
+	
 	// Set cheetahGlobal eperimentID and runNumber 
 	strcpy(cheetahGlobal.experimentID, global->exptName);
 	cheetahGlobal.runNumber = global->runNumber;
