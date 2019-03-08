@@ -366,12 +366,13 @@ int cheetah_process_file(tCheetahEigerparams *global) {
 
 	// Finish
 
-	cheetahExit(&cheetahGlobal);
-
 	H5Gclose(group);
 	H5Fclose(hdf);
-	free(buf);
 	
+	cheetahExit(&cheetahGlobal);
+
+	free(buf);
+
 	time_t endT;
 	time(&endT);
 	double dif = difftime(endT,startT);
