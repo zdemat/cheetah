@@ -423,7 +423,7 @@ void print_help(void){
     std::cout << "usage: cheetah-eiger -i <INIFILE> proteinXXX_master.h5 \n";
     std::cout << std::endl;
     std::cout << "\t--inifile=<file>     Specifies cheetah.ini file to use\n";
-    std::cout << "\t--experiment=<name>  String specifying the experiment name (used for lableling)\n";
+    std::cout << "\t--experiment=<name>  String specifying the experiment name (used for labeling)\n";
     std::cout << "\t--first=<n>          Start processing from the <first> frame (inclusive, frame numbering starts with 0)\n";
     std::cout << "\t--step=<n>           Process only each <step>th frame\n";
 	std::cout << "\t--last=<n>           End processing with the <last> frame (inclusive, set to -1 to process all frames)\n";
