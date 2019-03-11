@@ -37,6 +37,9 @@ struct tCheetahEigerparams {
     int frameFirst;
     int frameStep;
     int frameLast;
+	double frameTime;
+	/// HDF5 data collection time
+	time_t seconds;
 } CheetahEigerparams;
 
 void parse_config(int, char *[], tCheetahEigerparams*);
@@ -123,7 +126,7 @@ int cheetah_process_file(tCheetahEigerparams *global) {
 	int xpixels = -1, ypixels = -1, beamx = -1, beamy = -1, ival = -1, nimages = -1;
 	double pixelsize = -1, wavelength = -1, distance = -1;
 	double count_time = -1, frame_time = -1, osc_width = -1;
-	char detector_sn[256] = {}, description[256] = {};
+	char detector_sn[256] = {}, description[256] = {}, data_col_date[256] = {};
 
 	hid_t hdf;	
 
@@ -163,10 +166,13 @@ int cheetah_process_file(tCheetahEigerparams *global) {
 	fprintf(stderr, " /entry/instrument/detector/count_time = %f (sec)\n", count_time);
 	H5LTread_dataset_double(hdf, "/entry/instrument/detector/frame_time", &frame_time); // in 
 	fprintf(stderr, " /entry/instrument/detector/frame_time = %f (sec)\n", frame_time);
+	global->frameTime = frame_time;
 	H5LTread_dataset_double(hdf, "/entry/instrument/detector/x_pixel_size", &pixelsize); // in 
 	H5LTread_dataset_double(hdf, "/entry/instrument/detector/detector_distance", &distance);
 	fprintf(stderr, " /entry/instrument/detector/detector_distance = %f (m)\n", distance);
 	fprintf(stderr, " /entry/instrument/detector/x_pixel_size = %f (m)\n", pixelsize);
+	H5LTread_dataset_string(hdf, "/entry/instrument/detector/detectorSpecific/data_collection_date", data_col_date);
+	fprintf(stderr, "/entry/instrument/detector/detectorSpecific/data_collection_date = %s\n", data_col_date);
 
 	// There are many ways to store wavelength!
 	H5LTread_dataset_double(hdf, "/entry/instrument/beam/wavelength", &wavelength);
@@ -244,7 +250,24 @@ int cheetah_process_file(tCheetahEigerparams *global) {
 	H5Sclose(dataspace);
 	H5Dclose(data);
 	
-	//	Initialise Cheetah
+	// Timestamp
+	{
+		std::string str(data_col_date);
+		
+		std::replace( str.begin(), str.end(), 'T', ' ');
+
+		std::string::size_type pos = str.find(".");
+		str = str.substr(0, pos);
+
+		struct tm timeinfo;
+		strptime(str.c_str(), "%Y-%m-%d %H:%M:%S", &timeinfo);
+		// tm_isdst is undefined
+		timeinfo.tm_isdst = 0; // it may be wrong (who knows?)
+
+		global->seconds =  mktime(&timeinfo);
+	}
+	
+	// Initialise Cheetah
 	printf("** Setting up Cheetah **\n");
 	static uint32_t ntriggers = 0;
 	long frameNumber = 0;
@@ -294,6 +317,7 @@ int cheetah_process_file(tCheetahEigerparams *global) {
 		eventData->frameNumber = frameNumber;
 		eventData->fiducial = frameNumber;
 		eventData->runNumber = runNumber;
+		eventData->seconds = global->seconds + frameNumber*global->frameTime;
 		eventData->nPeaks = 0;
 		eventData->pumpLaserCode = 0;
 		eventData->pumpLaserDelay = 0;
@@ -425,6 +449,7 @@ void parse_config(int argc, char *argv[], tCheetahEigerparams *global) {
 	global->frameFirst = 0;
 	global->frameStep = 1;
 	global->frameLast = -1;
+	global->seconds = 0;
 
 	// legacy cheetah-eiger: if we have only two arguments we are done
 	if(argc<=3) {
